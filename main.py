@@ -26,7 +26,13 @@ class BlogHandler(webapp2.RequestHandler):
         # TODO - filter the query so that only posts by the given user
         # http://blogz-demo.appspot.com/blog/joel
         # called when click link on main blog page
+#        y = User.all()
+#        y.filter("username =", id)
+#        resulty = y.get()
+#        print("line 210 resulty = y.get() from User.all() == ", resulty)
         query = Post.all().order('-created')
+        query.filter(("author =", author))
+        print("line 35 author == ", author)
         return query.fetch(user=user, limit=limit, offset=offset)
         #return None
 
@@ -113,7 +119,7 @@ class BlogIndexHandler(BlogHandler):
             print("line 105 username, user, posts == ",username, user, posts)
         else:
             posts = self.get_posts(self.page_size, offset)
-            print("line 108 posts == ", posts)
+            print("line 122 posts == ", posts)
 
         # determine next/prev page numbers for navigation links
         if page > 1:
@@ -182,37 +188,17 @@ class ViewPostHandler(BlogHandler):
         """ Render a page with post determined by the id (via the URL/permalink) """
 
         post = Post.get_by_id(int(id))  # same as studio6 Movie.get_by_id(int(movie_id))
-
-#        Up = User.properties()
-#        for u in Up:
-#            print("line 201 u == ", u)
-#        kU = User.all(keys_only=True)
-#        for k in kU:
-#            print("line 204 k == ", k)
-#        y = User.all()
-#        y.filter("username =", id)
-#        resulty = y.get()
-#        print("line 210 resulty = y.get() from User.all() == ", resulty)
-
-#        Pp = Post.properties()
-#        for p in Pp:
-#            print("line 212 p == ", p)
-#        kP = Post.all(keys_only=True)
-#        for k in kP:
-#            print("line 215 k == ", k)
-#        z = Post.all()
-#        z.filter("title =", id)
-#        resultz = z.get()
-#        print("line 223 resultz = z.get() from Post.all() == ", resultz)
+        user = post.author
+        print("line 192 post == ", post.title, post.body, user.username, post.author)
 
         if post:
             t = jinja_env.get_template("post.html")
-            response = t.render(post=post)
-            print("line 209 post == ", post)
+            response = t.render(post=post,user=user)
+            print("line 196 post == ", post.title, post.body, post.author)
         else:
 #            print("line 222 id == ", id)
             error = ("there is no user/post with id %s" % id)
-            print("line 213 error == ", error)
+            print("line 200 error == ", error)
             t = jinja_env.get_template("404.html") # says nothing here!
             response = t.render(error=error)
         self.response.out.write(response)
@@ -348,6 +334,32 @@ class LogoutHandler(BlogHandler):
     def get(self):
         self.logout_user()  # logout_user() on line 40
         self.redirect('/blog')
+
+class Trash(BlogHandler):
+    pass
+
+#        Up = User.properties()
+#        for u in Up:
+#            print("line 201 u == ", u)
+#        kU = User.all(keys_only=True)
+#        for k in kU:
+#            print("line 204 k == ", k)
+#        y = User.all()
+#        y.filter("username =", id)
+#        resulty = y.get()
+#        print("line 210 resulty = y.get() from User.all() == ", resulty)
+
+#        Pp = Post.properties()
+#        for p in Pp:
+#            print("line 212 p == ", p)
+#        kP = Post.all(keys_only=True)
+#        for k in kP:
+#            print("line 215 k == ", k)
+#        z = Post.all()
+#        z.filter("title =", id)
+#        resultz = z.get()
+#        print("line 223 resultz = z.get() from Post.all() == ", resultz)
+
 
 # route handlers
 # class IndexHandler(BlogHandler): line 70
