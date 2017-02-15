@@ -12,6 +12,8 @@
 
 {% endfor %}
 
+{# below is navigation code from class BlogIndexHandler(BlogHandler): main.py line 104 #}
+
 {% if username %}
     {% if prev_page %}
     <a href="/blog/{{ username }}?page={{ prev_page }}">&lt; prev</a>

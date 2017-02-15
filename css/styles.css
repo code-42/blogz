@@ -70,3 +70,8 @@ nav ul li {
 nav #user-account {
     float: right;
 }
+
+.loggedinuser{
+    font-style: italic;
+    font-size: 16px;    
+}
