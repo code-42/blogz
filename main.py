@@ -194,9 +194,8 @@ class ViewPostHandler(BlogHandler):
         if post:
             t = jinja_env.get_template("post.html")
             response = t.render(post=post,user=user)
-            print("line 196 post == ", post.title, post.body, post.author)
+            print("line 196 post == ", post.title, post.body, user.username, post.author)
         else:
-#            print("line 222 id == ", id)
             error = ("there is no user/post with id %s" % id)
             print("line 200 error == ", error)
             t = jinja_env.get_template("404.html") # says nothing here!
