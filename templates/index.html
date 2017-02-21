@@ -2,11 +2,14 @@
 
 {% block content %}
 
-<h1>blog users!!<span class="loggedinuser">&nbsp;&nbsp;&nbsp;logged in user is{# user.username #}</span></h1>
+<h1>blog users!!  index.html</h1>
 
 <ul>
 {% for user in users %}
-<li><a href="/blog/{{ user.username }}">{{ user.username }}</a></li><br>
+<!-- <li><a href="/blog/{{ user.username }}">{{ user.username }}</a></li><br> -->
+    {% if user %}
+        <li><a href="/blog/user/{{ user.username }}">{{ user.username }}</a></li><br>
+    {% endif %}
 {% endfor %}
 </ul>
 

@@ -1,6 +1,6 @@
 body {
     font-family: sans-serif;
-    width: 600px;
+    width: 800px;
     margin: 0 auto;
     padding: 10px;
 }
@@ -73,10 +73,5 @@ nav #user-account {
 
 .loggedinuser{
     font-style: italic;
-    font-size: 16px;
-}
-
-.welcome {
-    float: right;
-    margin-right: 10px;
+    font-size: 16px;    
 }

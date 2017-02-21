@@ -30,10 +30,9 @@ class BlogHandler(webapp2.RequestHandler):
 #        y.filter("username =", id)
 #        resulty = y.get()
 #        print("line 210 resulty = y.get() from User.all() == ", resulty)
-        query = Post.all().order('-created')
-        query.filter(("author =", author))
-        print("line 35 author == ", author)
-        return query.fetch(user=user, limit=limit, offset=offset)
+        query = Post.all().order('-created').filter("author", user)
+#        print("line 35 user.username, limit, offset == ", user.username, limit, offset)
+        return query.fetch(limit=limit, offset=offset)
         #return None
 
     def get_user_by_name(self, username):
@@ -41,7 +40,7 @@ class BlogHandler(webapp2.RequestHandler):
         # called from line 275
         user = db.GqlQuery("SELECT * FROM User WHERE username = '%s'" % username)
         if user:
-            print("line 37 user already exists == ", username)
+            print("line 44 user already exists == ", username)
             return user.get()
 
     def login_user(self, user):
@@ -78,7 +77,7 @@ class BlogHandler(webapp2.RequestHandler):
         uid = self.read_secure_cookie('user_id')
         self.user = uid and User.get_by_id(int(uid))
         #for u in self.user:
-        print("line 69 uid, user == ", uid, self.user)  #, self.user.username)
+#        print("line 81 uid, user == ", uid, self.user)  #, self.user.username)
 
         if not self.user and self.request.path in auth_paths:
             # auth_paths on line 314
@@ -89,8 +88,11 @@ class IndexHandler(BlogHandler):
     def get(self):
         """ List all blog users on home page """
         users = User.all()
+        user = self.user
+        if user:
+            print("line 93 users, username == ", users, user.username)
         t = jinja_env.get_template("index.html")
-        response = t.render(users = users)
+        response = t.render(users = users, user = self.user)
         self.response.write(response)
 
 class BlogIndexHandler(BlogHandler):
@@ -100,7 +102,14 @@ class BlogIndexHandler(BlogHandler):
 
     def get(self, username=""):
         """ """
-
+        print("line 106 self, username == ", self, username)
+#        if username:
+#            user = self.get_user_by_name(username)
+#            print("line 107 user == ", user.username)
+        users = User.all()
+        #if user.username:
+#        for u in users:
+#            print("line 111 u.username == ", u.username)
         # If request is for a specific page, set page number and offset accordingly
         page = self.request.get("page")
         offset = 0
@@ -113,13 +122,16 @@ class BlogIndexHandler(BlogHandler):
         # Fetch posts for all users, or a specific user, depending on request parameters
         if username:
             user = self.get_user_by_name(username)
+            print("line 125 username == ",username)
             posts = self.get_posts_by_user(user, self.page_size, offset)
+            print("line 127 posts == ", posts)
+            print("line 128 username, user, posts == ",username, user, posts)
             for p in posts:
-                print("line 110 p == ", p)
-            print("line 105 username, user, posts == ",username, user, posts)
+                print("line 130 p == ", p)
+            print("line 131 username, user, posts == ",username, user, posts)
         else:
             posts = self.get_posts(self.page_size, offset)
-            print("line 122 posts == ", posts)
+            print("line 131 posts == ", posts)
 
         # determine next/prev page numbers for navigation links
         if page > 1:
@@ -131,13 +143,21 @@ class BlogIndexHandler(BlogHandler):
         if len(posts) == self.page_size and Post.all().count() > offset+self.page_size:
         # TypeError: object of type 'NoneType' has no len() for text username
         # routes to ViewPostHandler if username is numeric
-            print("line 119 len(posts) == ", len(posts))
+            print("line 143 len(posts) == ", len(posts))
             next_page = page + 1
-            print("line 121 next_page == ", next_page)
+            print("line 145 next_page == ", next_page)
         else:
             next_page = None
 
         # render the page
+        #user = self.get_user_by_name(username)
+        user = self.user
+        print("line 151 user == ", user, username)
+        print("line 152 render blog.html == ", posts)
+        print("line 153 render blog.html == ", page, self.page_size, prev_page, next_page)
+        print("line 154 len(posts) == ", len(posts))
+        for i in range(len(posts)):
+            print("line 156 posts[" + str(i) + "].author.username == ", posts[i].author.username)
         t = jinja_env.get_template("blog.html")
         response = t.render(
                     posts=posts,
@@ -145,15 +165,18 @@ class BlogIndexHandler(BlogHandler):
                     page_size=self.page_size,
                     prev_page=prev_page,
                     next_page=next_page,
-                    username=username)
+                    username=username,
+                    user = user,
+                    users = users)
         self.response.out.write(response)
 
 class NewPostHandler(BlogHandler):
 
     def render_form(self, title="", body="", error=""):
         """ Render the new post form with or without an error, based on parameters """
+        user = self.user
         t = jinja_env.get_template("newpost.html")
-        response = t.render(title=title, body=body, error=error)
+        response = t.render(title=title, body=body, error=error, user = user)
         self.response.out.write(response)
 
     def get(self):
@@ -171,7 +194,8 @@ class NewPostHandler(BlogHandler):
             post = Post(
                 title=title,
                 body=body,
-                author=self.user)
+                author=self.user
+                )
             post.put()
 
             # get the id of the new post, so we can render the post's page (via the permalink)
@@ -188,16 +212,11 @@ class ViewPostHandler(BlogHandler):
         """ Render a page with post determined by the id (via the URL/permalink) """
 
         post = Post.get_by_id(int(id))  # same as studio6 Movie.get_by_id(int(movie_id))
-        user = post.author
-        print("line 192 post == ", post.title, post.body, user.username, post.author)
-
         if post:
             t = jinja_env.get_template("post.html")
-            response = t.render(post=post,user=user)
-            print("line 196 post == ", post.title, post.body, user.username, post.author)
+            response = t.render(post=post, user=self.user)
         else:
-            error = ("there is no user/post with id %s" % id)
-            print("line 200 error == ", error)
+            error = ("there is no post with id %s" % id)
             t = jinja_env.get_template("404.html") # says nothing here!
             response = t.render(error=error)
         self.response.out.write(response)
@@ -233,8 +252,9 @@ class SignupHandler(BlogHandler):
             return email
 
     def get(self):
+        user = ""
         t = jinja_env.get_template("signup.html")
-        response = t.render(errors={})
+        response = t.render(errors={}, user = user)
         self.response.out.write(response)
 
     def post(self):
@@ -307,7 +327,8 @@ class LoginHandler(BlogHandler):
     def render_login_form(self, error=""):
         """ Render the login form with or without an error, based on parameters """
         t = jinja_env.get_template("login.html")  # login.html template from demo
-        response = t.render(error=error)
+        user = ""
+        response = t.render(error=error, user = user)
         self.response.out.write(response)
 
     def get(self):
@@ -333,6 +354,23 @@ class LogoutHandler(BlogHandler):
     def get(self):
         self.logout_user()  # logout_user() on line 40
         self.redirect('/blog')
+
+class Stats(BlogHandler):
+
+    def get(self):
+#        user = self.user
+        post = Post.all()
+        users = User.all()
+        posts = Post.all()
+        print("line 365 post.user == ", posts)
+#        usercount = User.all().count()
+#        postcount = Post.all().count()
+#        print("line 369 usercount == ", usercount, postcount)
+        print("line 366 users, posts == ", self.user.username, post, users, posts)
+        t = jinja_env.get_template("stats.html")
+        response = t.render(user=self.user, post=post, users=users, posts=posts )
+        self.response.out.write(response)
+
 
 class Trash(BlogHandler):
     pass
@@ -363,8 +401,8 @@ class Trash(BlogHandler):
 # route handlers
 # class IndexHandler(BlogHandler): line 70
 # class BlogIndexHandler(BlogHandler): line 84
-# class NewPostHandler(BlogHandler): line 125
-# class ViewPostHandler(BlogHandler): line 157
+# class NewPostHandler(BlogHandler): line 155
+# class ViewPostHandler(BlogHandler): line 190
 # class SignupHandler(BlogHandler): line 173
 # class LoginHandler(BlogHandler): line 270
 # class LogoutHandler(BlogHandler): line 298
@@ -375,10 +413,12 @@ app = webapp2.WSGIApplication([
     ('/blog', BlogIndexHandler),
     ('/blog/newpost', NewPostHandler),
     webapp2.Route('/blog/<id:\d+>', ViewPostHandler),
-    webapp2.Route('/blog/<username:^[a-zA-Z0-9_-]{3,20}>', BlogIndexHandler),
+#    webapp2.Route('/blog/<username:^[a-zA-Z0-9_-]{3,20}>', BlogIndexHandler),
+    webapp2.Route('/blog/user/<username:[a-zA-Z0-9_-]{3,20}>', BlogIndexHandler),
     ('/signup', SignupHandler),
     ('/login', LoginHandler),
-    ('/logout', LogoutHandler)
+    ('/logout', LogoutHandler),
+    ('/stats', Stats)
 ], debug=True)
 
 # A list of paths that a user must be logged in to access
