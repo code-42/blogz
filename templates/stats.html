@@ -9,7 +9,7 @@
 
     <label>
         <ul>
-            <li>{{ user.username }} blogged {# #} times</li>
+            <li>{{ user.username }} blogged {{ posts.filter("author", user.username).count() }} times</li>
 
         </ul>
     </label>

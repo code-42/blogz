@@ -26,12 +26,7 @@ class BlogHandler(webapp2.RequestHandler):
         # TODO - filter the query so that only posts by the given user
         # http://blogz-demo.appspot.com/blog/joel
         # called when click link on main blog page
-#        y = User.all()
-#        y.filter("username =", id)
-#        resulty = y.get()
-#        print("line 210 resulty = y.get() from User.all() == ", resulty)
         query = Post.all().order('-created').filter("author", user)
-#        print("line 35 user.username, limit, offset == ", user.username, limit, offset)
         return query.fetch(limit=limit, offset=offset)
         #return None
 
@@ -76,8 +71,6 @@ class BlogHandler(webapp2.RequestHandler):
         webapp2.RequestHandler.initialize(self, *a, **kw)
         uid = self.read_secure_cookie('user_id')
         self.user = uid and User.get_by_id(int(uid))
-        #for u in self.user:
-#        print("line 81 uid, user == ", uid, self.user)  #, self.user.username)
 
         if not self.user and self.request.path in auth_paths:
             # auth_paths on line 314
@@ -102,14 +95,8 @@ class BlogIndexHandler(BlogHandler):
 
     def get(self, username=""):
         """ """
-        print("line 106 self, username == ", self, username)
-#        if username:
-#            user = self.get_user_by_name(username)
-#            print("line 107 user == ", user.username)
+        print("line 106 self, username == ", self.user, username)
         users = User.all()
-        #if user.username:
-#        for u in users:
-#            print("line 111 u.username == ", u.username)
         # If request is for a specific page, set page number and offset accordingly
         page = self.request.get("page")
         offset = 0
@@ -122,16 +109,16 @@ class BlogIndexHandler(BlogHandler):
         # Fetch posts for all users, or a specific user, depending on request parameters
         if username:
             user = self.get_user_by_name(username)
-            print("line 125 username == ",username)
+            print("line 112 username == ",username)
             posts = self.get_posts_by_user(user, self.page_size, offset)
-            print("line 127 posts == ", posts)
-            print("line 128 username, user, posts == ",username, user, posts)
+            print("line 114 posts == ", posts)
+            print("line 115 username, user, posts == ",username, user, posts)
             for p in posts:
-                print("line 130 p == ", p)
-            print("line 131 username, user, posts == ",username, user, posts)
+                print("line 117 p == ", p)
+            print("line 118 username, user, posts == ",username, user, posts)
         else:
             posts = self.get_posts(self.page_size, offset)
-            print("line 131 posts == ", posts)
+            print("line 121 posts == ", posts)
 
         # determine next/prev page numbers for navigation links
         if page > 1:
@@ -143,21 +130,21 @@ class BlogIndexHandler(BlogHandler):
         if len(posts) == self.page_size and Post.all().count() > offset+self.page_size:
         # TypeError: object of type 'NoneType' has no len() for text username
         # routes to ViewPostHandler if username is numeric
-            print("line 143 len(posts) == ", len(posts))
+            print("line 133 len(posts) == ", len(posts))
             next_page = page + 1
-            print("line 145 next_page == ", next_page)
+            print("line 135 next_page == ", next_page)
         else:
             next_page = None
 
         # render the page
         #user = self.get_user_by_name(username)
         user = self.user
-        print("line 151 user == ", user, username)
-        print("line 152 render blog.html == ", posts)
-        print("line 153 render blog.html == ", page, self.page_size, prev_page, next_page)
-        print("line 154 len(posts) == ", len(posts))
+        print("line 142 user == ", user, username)
+        print("line 143 render blog.html == ", posts)
+        print("line 144 render blog.html == ", page, self.page_size, prev_page, next_page)
+        print("line 145 len(posts) == ", len(posts))
         for i in range(len(posts)):
-            print("line 156 posts[" + str(i) + "].author.username == ", posts[i].author.username)
+            print("line 147 posts[" + str(i) + "].author.username == ", posts[i].author.username)
         t = jinja_env.get_template("blog.html")
         response = t.render(
                     posts=posts,
@@ -359,16 +346,29 @@ class Stats(BlogHandler):
 
     def get(self):
 #        user = self.user
-        post = Post.all()
+#        post = Post.all()
         users = User.all()
         posts = Post.all()
-        print("line 365 post.user == ", posts)
-#        usercount = User.all().count()
-#        postcount = Post.all().count()
-#        print("line 369 usercount == ", usercount, postcount)
-        print("line 366 users, posts == ", self.user.username, post, users, posts)
+
+        for usr in users:
+            usrkey = usr.key()
+#            pathkey = Key.from_path()
+            print("line 365 user.username == ", usr.username, usrkey)  #, pathkey)
+
+        psts = Post.all()
+        for pst in psts:
+            print("line 368 pts == ", pst.author.username)
+
+#        pos = Post.get(User.username)
+#        print("line 373 pos == ", pos)
+
+        query = Post.all().filter("author", self.user)
+        psts = query.run()
+        for p in psts:
+            print("line 373 psts == ", psts)
+
         t = jinja_env.get_template("stats.html")
-        response = t.render(user=self.user, post=post, users=users, posts=posts )
+        response = t.render(user=self.user, users=users, posts=posts)
         self.response.out.write(response)
 
 
