@@ -351,51 +351,20 @@ class Stats(BlogHandler):
         posts = Post.all()
 
         for usr in users:
-            usrkey = usr.key()
-#            pathkey = Key.from_path()
-            print("line 365 user.username == ", usr.username, usrkey)  #, pathkey)
+            usrkey = int(usr.key().id())
+            print("line 365 user.username, usrkey == ", usr.username, usrkey)
 
         psts = Post.all()
+        lst = []
         for pst in psts:
-            print("line 368 pts == ", pst.author.username)
-
-#        pos = Post.get(User.username)
-#        print("line 373 pos == ", pos)
-
-        query = Post.all().filter("author", self.user)
-        psts = query.run()
-        for p in psts:
-            print("line 373 psts == ", psts)
+            lst.append(pst.author.username)
+        dic=dict((n,lst.count(n)) for n in lst)
+        for n in dic:
+            print(n, dic[n])
 
         t = jinja_env.get_template("stats.html")
-        response = t.render(user=self.user, users=users, posts=posts)
+        response = t.render(user=self.user, users=users, posts=posts, dic=dic)
         self.response.out.write(response)
-
-
-class Trash(BlogHandler):
-    pass
-
-#        Up = User.properties()
-#        for u in Up:
-#            print("line 201 u == ", u)
-#        kU = User.all(keys_only=True)
-#        for k in kU:
-#            print("line 204 k == ", k)
-#        y = User.all()
-#        y.filter("username =", id)
-#        resulty = y.get()
-#        print("line 210 resulty = y.get() from User.all() == ", resulty)
-
-#        Pp = Post.properties()
-#        for p in Pp:
-#            print("line 212 p == ", p)
-#        kP = Post.all(keys_only=True)
-#        for k in kP:
-#            print("line 215 k == ", k)
-#        z = Post.all()
-#        z.filter("title =", id)
-#        resultz = z.get()
-#        print("line 223 resultz = z.get() from Post.all() == ", resultz)
 
 
 # route handlers
