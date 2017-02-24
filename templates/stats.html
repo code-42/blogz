@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+
+<label>Blogz! has <b>{{ users.count() }}</b> users and <b>{{ posts.count() }}</b> total posts.</label>
+
+    {% for user in users %}
+
+    <label>
+        <ul>
+            <li><b>{{ user.username }}</b> blogged <b>{{ user.posts.count() }}</b> times</li>
+
+        </ul>
+    </label>
+
+    {% endfor %}
+
+
+{% endblock %}

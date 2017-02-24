@@ -3,6 +3,9 @@ from google.appengine.ext import db
 from models import Post, User
 import hashutils
 
+# this is dev_blogz
+# see walkthrough video https://youtu.be/KtPNiBUlqA0
+
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir), autoescape = True)
 
@@ -21,21 +24,32 @@ class BlogHandler(webapp2.RequestHandler):
         """
 
         # TODO - filter the query so that only posts by the given user
-        return None
+        # http://blogz-demo.appspot.com/blog/joel
+        # called when click link on main blog page
+        query = Post.all().order('-created').filter("author", user)
+        return query.fetch(limit=limit, offset=offset)
+        #return None
 
     def get_user_by_name(self, username):
         """ Get a user object from the db, based on their username """
+        # called from line 275
         user = db.GqlQuery("SELECT * FROM User WHERE username = '%s'" % username)
         if user:
+            print("line 44 user already exists == ", username)
             return user.get()
 
     def login_user(self, user):
         """ Login a user specified by a User object user """
         user_id = user.key().id()
+        print("line 42 login_user() user_id == ", user_id)
+        # store the user_id in a cookie
+        # called from line 243 and 290
         self.set_secure_cookie('user_id', str(user_id))
 
     def logout_user(self):
         """ Logout a user specified by a User object user """
+        # class LogoutHandler(BlogHandler): at line 296
+        print("line 50 logout_user = ", self)
         self.set_secure_cookie('user_id', '')
 
     def read_secure_cookie(self, name):
@@ -52,21 +66,28 @@ class BlogHandler(webapp2.RequestHandler):
             A filter to restrict access to certain pages when not logged in.
             If the request path is in the global auth_paths list, then the user
             must be signed in to access the path/resource.
+            auth_paths = [ '/blog/newpost' ]
         """
         webapp2.RequestHandler.initialize(self, *a, **kw)
         uid = self.read_secure_cookie('user_id')
         self.user = uid and User.get_by_id(int(uid))
+        if self.user:
+            print("line 74 initialize uid, User.get_by_id(int(uid)) == ", self.user, uid, User.get_by_id(int(uid)))
 
         if not self.user and self.request.path in auth_paths:
+            # auth_paths on line 314
             self.redirect('/login')
 
 class IndexHandler(BlogHandler):
 
     def get(self):
-        """ List all blog users """
+        """ List all blog users on home page """
         users = User.all()
+        user = self.user
+        if user:
+            print("line 93 users, username == ", users, user.username)
         t = jinja_env.get_template("index.html")
-        response = t.render(users = users)
+        response = t.render(users = users, user = self.user)
         self.response.write(response)
 
 class BlogIndexHandler(BlogHandler):
@@ -76,7 +97,8 @@ class BlogIndexHandler(BlogHandler):
 
     def get(self, username=""):
         """ """
-
+        print("line 106 self, username == ", self.user, username)
+        users = User.all()
         # If request is for a specific page, set page number and offset accordingly
         page = self.request.get("page")
         offset = 0
@@ -89,22 +111,41 @@ class BlogIndexHandler(BlogHandler):
         # Fetch posts for all users, or a specific user, depending on request parameters
         if username:
             user = self.get_user_by_name(username)
+            print("line 112 username == ",username)
             posts = self.get_posts_by_user(user, self.page_size, offset)
+            print("line 114 posts == ", posts)
+            print("line 115 username, user, posts == ",username, user, posts)
+            for p in posts:
+                print("line 117 p == ", p)
+            print("line 118 username, user, posts == ",username, user, posts)
         else:
             posts = self.get_posts(self.page_size, offset)
+            print("line 121 posts == ", posts)
 
         # determine next/prev page numbers for navigation links
         if page > 1:
             prev_page = page - 1
+            print("prev_page == ", prev_page)
         else:
             prev_page = None
 
         if len(posts) == self.page_size and Post.all().count() > offset+self.page_size:
+        # TypeError: object of type 'NoneType' has no len() for text username
+        # routes to ViewPostHandler if username is numeric
+            print("line 133 len(posts) == ", len(posts))
             next_page = page + 1
+            print("line 135 next_page == ", next_page)
         else:
             next_page = None
 
         # render the page
+        user = self.user
+        print("line 142 user == ", user, username)
+        print("line 143 render blog.html == ", posts)
+        print("line 144 render blog.html == ", page, self.page_size, prev_page, next_page)
+        print("line 145 len(posts) == ", len(posts))
+        for i in range(len(posts)):
+            print("line 147 posts[" + str(i) + "].author.username == ", posts[i].author.username)
         t = jinja_env.get_template("blog.html")
         response = t.render(
                     posts=posts,
@@ -112,15 +153,18 @@ class BlogIndexHandler(BlogHandler):
                     page_size=self.page_size,
                     prev_page=prev_page,
                     next_page=next_page,
-                    username=username)
+                    username=username,
+                    user = user,
+                    users = users)
         self.response.out.write(response)
 
 class NewPostHandler(BlogHandler):
 
     def render_form(self, title="", body="", error=""):
         """ Render the new post form with or without an error, based on parameters """
+        user = self.user
         t = jinja_env.get_template("newpost.html")
-        response = t.render(title=title, body=body, error=error)
+        response = t.render(title=title, body=body, error=error, user = user)
         self.response.out.write(response)
 
     def get(self):
@@ -130,6 +174,7 @@ class NewPostHandler(BlogHandler):
         """ Create a new blog post if possible. Otherwise, return with an error message """
         title = self.request.get("title")
         body = self.request.get("body")
+        print("title, body == ", title, body)
 
         if title and body:
 
@@ -137,11 +182,13 @@ class NewPostHandler(BlogHandler):
             post = Post(
                 title=title,
                 body=body,
-                author=self.user)
+                author=self.user
+                )
             post.put()
 
             # get the id of the new post, so we can render the post's page (via the permalink)
             id = post.key().id()
+            print("id == ",id)
             self.redirect("/blog/%s" % id)
         else:
             error = "we need both a title and a body!"
@@ -152,15 +199,14 @@ class ViewPostHandler(BlogHandler):
     def get(self, id):
         """ Render a page with post determined by the id (via the URL/permalink) """
 
-        post = Post.get_by_id(int(id))
+        post = Post.get_by_id(int(id))  # same as studio6 Movie.get_by_id(int(movie_id))
         if post:
             t = jinja_env.get_template("post.html")
-            response = t.render(post=post)
+            response = t.render(post=post, user=self.user)
         else:
-            error = "there is no post with id %s" % id
-            t = jinja_env.get_template("404.html")
+            error = ("there is no post with id %s" % id)
+            t = jinja_env.get_template("404.html") # says nothing here!
             response = t.render(error=error)
-
         self.response.out.write(response)
 
 class SignupHandler(BlogHandler):
@@ -194,8 +240,9 @@ class SignupHandler(BlogHandler):
             return email
 
     def get(self):
+        user = ""
         t = jinja_env.get_template("signup.html")
-        response = t.render(errors={})
+        response = t.render(errors={}, user = user)
         self.response.out.write(response)
 
     def post(self):
@@ -220,6 +267,8 @@ class SignupHandler(BlogHandler):
 
         errors = {}
         existing_user = self.get_user_by_name(username)
+        # get_user_by_name(username) method is at line 28 in class BlogHandler():
+        print("line 277 existing_user = self.get_user_by_name(username) == ", username)
         has_error = False
 
         if existing_user:
@@ -231,12 +280,15 @@ class SignupHandler(BlogHandler):
             pw_hash = hashutils.make_pw_hash(username, password)
             user = User(username=username, pw_hash=pw_hash)
             user.put()
+            print("username, pw_hash == ", user.username, user.pw_hash)
 
             # login our new user
+            # login_user(self, user) method is at line 34 in class BlogHandler():
             self.login_user(user)
         else:
             has_error = True
 
+            # validation methods begin at line 170
             if not username:
                 errors['username_error'] = "That's not a valid username"
 
@@ -262,8 +314,9 @@ class LoginHandler(BlogHandler):
 
     def render_login_form(self, error=""):
         """ Render the login form with or without an error, based on parameters """
-        t = jinja_env.get_template("login.html")
-        response = t.render(error=error)
+        t = jinja_env.get_template("login.html")  # login.html template from demo
+        user = ""
+        response = t.render(error=error, user = user)
         self.response.out.write(response)
 
     def get(self):
@@ -287,21 +340,44 @@ class LoginHandler(BlogHandler):
 class LogoutHandler(BlogHandler):
 
     def get(self):
-        self.logout_user()
+        self.logout_user()  # logout_user() on line 40
         self.redirect('/blog')
+
+class Stats(BlogHandler):
+
+    def get(self):
+#        user = self.user
+#        post = Post.all()
+        users = User.all()
+        posts = Post.all()
+
+        for usr in users:
+            usrkey = int(usr.key().id())
+            print("line 365 user.username, usrkey == ", usr.username, usrkey)
+
+
+# note about dict syntax: {defined} (list comprehension) and [n]
+# count = modelname.all(keys_only=True).count()
+        t = jinja_env.get_template("stats.html")
+        response = t.render(user=self.user, users=users, posts=posts)
+        self.response.out.write(response)
+
 
 app = webapp2.WSGIApplication([
     ('/', IndexHandler),
     ('/blog', BlogIndexHandler),
     ('/blog/newpost', NewPostHandler),
     webapp2.Route('/blog/<id:\d+>', ViewPostHandler),
-    webapp2.Route('/blog/<username:[a-zA-Z0-9_-]{3,20}>', BlogIndexHandler),
+#    webapp2.Route('/blog/<username:^[a-zA-Z0-9_-]{3,20}>', BlogIndexHandler),
+    webapp2.Route('/blog/user/<username:[a-zA-Z0-9_-]{3,20}>', BlogIndexHandler),
     ('/signup', SignupHandler),
     ('/login', LoginHandler),
-    ('/logout', LogoutHandler)
+    ('/logout', LogoutHandler),
+    ('/stats', Stats)
 ], debug=True)
 
 # A list of paths that a user must be logged in to access
+# def initialize(self, *a, **kw): on line 55 and used on line 65
 auth_paths = [
     '/blog/newpost'
 ]
