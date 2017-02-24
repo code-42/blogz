@@ -3,13 +3,13 @@
 {% block content %}
 
 
-<label>Blogz! has {{ users.count() }} users and {{ posts.count() }} total posts.</label>
+<label>Blogz! has <b>{{ users.count() }}</b> users and <b>{{ posts.count() }}</b> total posts.</label>
 
     {% for user in users %}
 
     <label>
         <ul>
-            <li>{{ user.username }} blogged {{ dic[user.username] }} times</li>
+            <li><b>{{ user.username }}</b> blogged <b>{{ user.posts.count() }}</b> times</li>
 
         </ul>
     </label>

@@ -71,6 +71,8 @@ class BlogHandler(webapp2.RequestHandler):
         webapp2.RequestHandler.initialize(self, *a, **kw)
         uid = self.read_secure_cookie('user_id')
         self.user = uid and User.get_by_id(int(uid))
+        if self.user:
+            print("line 74 initialize uid, User.get_by_id(int(uid)) == ", self.user, uid, User.get_by_id(int(uid)))
 
         if not self.user and self.request.path in auth_paths:
             # auth_paths on line 314
@@ -137,7 +139,6 @@ class BlogIndexHandler(BlogHandler):
             next_page = None
 
         # render the page
-        #user = self.get_user_by_name(username)
         user = self.user
         print("line 142 user == ", user, username)
         print("line 143 render blog.html == ", posts)
@@ -354,28 +355,13 @@ class Stats(BlogHandler):
             usrkey = int(usr.key().id())
             print("line 365 user.username, usrkey == ", usr.username, usrkey)
 
-        psts = Post.all()
-        lst = []
-        for pst in psts:
-            lst.append(pst.author.username)
-        dic=dict((n,lst.count(n)) for n in lst)
-        for n in dic:
-            print(n, dic[n])
 
+# note about dict syntax: {defined} (list comprehension) and [n]
+# count = modelname.all(keys_only=True).count()
         t = jinja_env.get_template("stats.html")
-        response = t.render(user=self.user, users=users, posts=posts, dic=dic)
+        response = t.render(user=self.user, users=users, posts=posts)
         self.response.out.write(response)
 
-
-# route handlers
-# class IndexHandler(BlogHandler): line 70
-# class BlogIndexHandler(BlogHandler): line 84
-# class NewPostHandler(BlogHandler): line 155
-# class ViewPostHandler(BlogHandler): line 190
-# class SignupHandler(BlogHandler): line 173
-# class LoginHandler(BlogHandler): line 270
-# class LogoutHandler(BlogHandler): line 298
-# (r"^[a-zA-Z0-9_-]{3,20}$")
 
 app = webapp2.WSGIApplication([
     ('/', IndexHandler),
